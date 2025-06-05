@@ -38,7 +38,7 @@ Directly view the live version:
 
 The easiest way to use this tool is to access it if it's hosted online. (If you have deployed it, replace the bracketed text below with your live URL)
 
-Live Demo URL: [Link to your deployed application, e.g., on GitHub Pages, Netlify, etc.]
+Live Demo URL: https://ai-product-manager-7896c.web.app
 
 Run locally:
 
