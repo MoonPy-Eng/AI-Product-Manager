@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LangChain vs. LlamaIndex | Interactive Capability Comparison</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* gray-100 */
+            color: #1f2937; /* gray-800 */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin: 1rem auto;
+            height: 400px; /* Adjusted for better radar chart display */
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 500px;
+            }
+        }
+        .details-panel {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 0.5rem; /* rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); /* shadow-md */
+            margin-top: 2rem;
+        }
+        .details-title {
+            font-size: 1.25rem; /* text-xl */
+            font-weight: 600; /* font-semibold */
+            color: #003f5c; /* Custom dark blue */
+            margin-bottom: 1rem;
+        }
+        .details-content h4 {
+            font-size: 1rem; /* text-base */
+            font-weight: 600; /* font-semibold */
+            color: #111827; /* gray-900 */
+            margin-top: 0.75rem;
+            margin-bottom: 0.25rem;
+        }
+        .details-content p, .details-content ul {
+            font-size: 0.875rem; /* text-sm */
+            color: #374151; /* gray-700 */
+            line-height: 1.6;
+            margin-bottom: 0.75rem;
+        }
+        .details-content ul {
+            list-style-type: disc;
+            padding-left: 1.25rem;
+        }
+        .details-content strong { /* For PM Insight labels */
+            color: #003f5c;
+        }
+        .control-button {
+            background-color: #4f46e5; /* indigo-600 */
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem; /* rounded-md */
+            font-weight: 500; /* font-medium */
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+            border: none;
+            margin: 0.25rem;
+        }
+        .control-button:hover {
+            background-color: #4338ca; /* indigo-700 */
+        }
+        .control-button.active {
+            background-color: #3730a3; /* indigo-800 */
+            font-weight: 600;
+        }
+        .capability-button {
+             background-color: #e0e7ff; /* indigo-100 */
+             color: #3730a3; /* indigo-800 */
+             padding: 0.5rem 0.75rem;
+             border-radius: 0.375rem;
+             font-weight: 500;
+             text-align: center;
+             cursor: pointer;
+             transition: all 0.2s ease-in-out;
+             border: 1px solid #c7d2fe; /* indigo-200 */
+             margin: 0.25rem;
+        }
+        .capability-button:hover {
+            background-color: #c7d2fe; /* indigo-200 */
+            color: #312e81; /* indigo-900 */
+        }
+        .capability-button.selected {
+            background-color: #4f46e5; /* indigo-600 */
+            color: white;
+            border-color: #4f46e5;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <header class="text-center mb-8">
+        <h1 class="text-3xl md:text-4xl font-bold text-black">LangChain vs. LlamaIndex: Interactive Comparison</h1>
+        <h2 class="text-xl md:text-2xl font-bold text-black mt-2">   
+            Getting started as AI Product Manager.
+        </h2>
+        <p class="text-md text-gray-600 max-w-3xl mx-auto mt-3"> 
+            Understanding the capabilities, strengths, and typical use cases of LangChain and LlamaIndex.
+            Click on a capability label below or on the chart points for detailed insights. 
+        </p>
+    </header>
+
+    <main class="container mx-auto">
+        <!-- Controls for Toggling Framework Visibility -->
+        <div class="text-center mb-6">
+            <h2 class="text-xl font-semibold text-gray-700 mb-2">Chart Controls</h2>
+            <button id="toggleLangChainBtn" class="control-button active">Show LangChain</button>
+            <button id="toggleLlamaIndexBtn" class="control-button active">Show LlamaIndex</button>
+        </div>
+
+        <!-- Chart Container -->
+        <div class="chart-container">
+            <canvas id="capabilityRadarChart"></canvas>
+        </div>
+
+        <!-- Capability Buttons for Detail View -->
+        <div class="text-center my-6">
+             <h2 class="text-xl font-semibold text-gray-700 mb-3">Explore Capabilities</h2>
+            <div id="capabilityButtonsContainer" class="flex flex-wrap justify-center gap-2">
+                <!-- Buttons will be dynamically inserted here by JS -->
+            </div>
+        </div>
+
+
+        <!-- Details Panel -->
+        <div id="detailsPanel" class="details-panel" style="display: none;">
+            <h3 id="detailsTitle" class="details-title">Capability Details</h3>
+            <div id="detailsContent" class="details-content">
+                <!-- Detailed information will be injected here -->
+            </div>
+        </div>
+    </main>
+
+    <footer class="text-center p-4 mt-12 text-sm text-gray-500">
+        <p>&copy; 2025 AI Product Insights. Scores and explanations are for illustrative and general guidance purposes.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const capabilities = [
+                { id: 'nativeRAG', name: 'Native RAG Capabilities' },
+                { id: 'integrationEcosystem', name: 'Integration Ecosystem' },
+                { id: 'flexibilityCustomization', name: 'Flexibility/Customization' },
+                { id: 'agentTooling', name: 'Agent & Tooling' },
+                { id: 'indexingRetrieval', name: 'Indexing & Retrieval' },
+                { id: 'easeOfGettingStarted', name: 'Ease of Getting Started' },
+                { id: 'scalabilityProduction', name: 'Scalability/Production' }
+            ];
+
+            const frameworkData = {
+                langChain: {
+                    label: 'LangChain',
+                    scores: [7, 9, 8, 9, 7, 7, 8], // Scores correspond to 'capabilities' order
+                    borderColor: 'rgba(255, 99, 132, 1)', // Red
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    hidden: false
+                },
+                llamaIndex: {
+                    label: 'LlamaIndex',
+                    scores: [9, 7, 8, 6, 9, 8, 7], // Scores correspond to 'capabilities' order
+                    borderColor: 'rgba(54, 162, 235, 1)', // Blue
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    hidden: false
+                }
+            };
+
+            const capabilityDetails = {
+                nativeRAG: {
+                    title: 'Native RAG Capabilities',
+                    description: "Refers to how deeply and comprehensively the framework supports Retrieval Augmented Generation out-of-the-box, including chaining, query transformation, and context management for LLMs.",
+                    langChainUseCases: "Building complex RAG pipelines with custom logic, multi-hop retrieval, advanced query transformations (e.g., HyDE, ReAct), and seamless conversational memory integration.",
+                    llamaIndexUseCases: "Rapidly setting up efficient RAG over diverse and complex data sources (structured, unstructured, graph), offering advanced and granular indexing strategies, and supporting fine-tuning of retrieval/embedding models for specific datasets.",
+                    pmInsight: "High native RAG support significantly reduces development time for core Q&A features and knowledge-intensive applications. LlamaIndex often provides deeper, more specialized RAG components focused on the 'data layer', while LangChain offers a broader toolkit for constructing complex, multi-step RAG chains and agentic workflows around them."
+                },
+                integrationEcosystem: {
+                    title: 'Integration Ecosystem',
+                    description: "The variety, depth, and ease of integrating with different Large Language Models (LLMs), vector databases, data loaders, and external tools/APIs.",
+                    langChainUseCases: "Leveraging a vast array of LLM providers (OpenAI, Hugging Face, Cohere, etc.), connecting to numerous vector stores, and integrating with a wide range of third-party APIs and tools to build sophisticated agentic behavior.",
+                    llamaIndexUseCases: "Strong focus on a comprehensive suite of data connectors for diverse sources (APIs, files, databases) and deep integrations with leading vector stores, optimized for creating robust data ingestion and indexing pipelines.",
+                    pmInsight: "A rich ecosystem (often associated with LangChain) offers broad flexibility and choice, potentially speeding up Proof-of-Concepts and allowing for diverse tooling. A highly optimized, data-focused ecosystem (a key strength of LlamaIndex) ensures efficient and specialized data handling for RAG."
+                },
+                flexibilityCustomization: {
+                    title: 'Flexibility/Customization',
+                    description: "The ability to modify, extend, or replace core components of the framework (e.g., prompts, retrievers, memory modules, indexing logic) to suit specific or advanced requirements.",
+                    langChainUseCases: "Building highly custom chains with arbitrary complexity, designing bespoke agents with unique reasoning loops, and implementing novel research ideas by composing or subclassing base components.",
+                    llamaIndexUseCases: "Extensively customizing indexing strategies (e.g., defining custom node parsers), tailoring retrieval algorithms, modifying data structures, and fine-tuning embedding models or rerankers within its data framework.",
+                    pmInsight: "High flexibility is crucial for developing unique product differentiators or tackling complex, non-standard problems. Both frameworks offer good customizability. LangChain's general-purpose nature allows for broader architectural changes, while LlamaIndex excels in deep customization of data processing and retrieval pipelines."
+                },
+                agentTooling: {
+                    title: 'Agent & Tooling Support',
+                    description: "Support for creating autonomous or semi-autonomous agents that can use tools, reason, plan, and interact with their environment to achieve complex goals.",
+                    langChainUseCases: "Building sophisticated agents for tasks like research, complex Q&A, planning, code generation, or interacting with software and APIs (e.g., ReAct, OpenAI Functions/Tools agents).",
+                    llamaIndexUseCases: "While LlamaIndex itself is more focused on the data layer for RAG, it provides powerful data querying capabilities that can be easily integrated into agents built with LangChain or other frameworks. It also offers 'data agents' specialized in querying structured and unstructured data.",
+                    pmInsight: "LangChain is generally the go-to for building complex, general-purpose agents due to its extensive set of agent types, executors, and tool integrations. LlamaIndex can supercharge these agents by providing advanced, context-aware data retrieval as a tool."
+                },
+                indexingRetrieval: {
+                    title: 'Indexing & Retrieval Sophistication',
+                    description: "The sophistication, variety, and performance of methods available for indexing data (creating searchable representations) and retrieving relevant information efficiently and accurately.",
+                    langChainUseCases: "Implementing various standard retrieval strategies (vector similarity, keyword-based, parent document retrieval, ensemble retrieval) as part of larger chains. Provides abstractions over vector stores.",
+                    llamaIndexUseCases: "Offering advanced and diverse indexing structures beyond simple vector indexes (e.g., tree indexes, keyword table indexes, knowledge graph indexes), sophisticated query-time transformations, and optimized retrieval for different data modalities and query types. Strong focus on retrieval performance and evaluation.",
+                    pmInsight: "LlamaIndex typically provides more advanced, granular control, and a wider array of options for indexing and retrieval. This is critical for applications where retrieval quality, efficiency over complex/heterogeneous data, or specialized query needs are paramount. LangChain offers robust, standard retrieval options suitable for many use cases."
+                },
+                easeOfGettingStarted: {
+                    title: 'Ease of Getting Started',
+                    description: "The learning curve, clarity of documentation, and effort required for a developer to build and deploy a basic application using the framework.",
+                    langChainUseCases: "Relatively quick to set up basic chains (e.g., LLMChain, basic RAG) due to many examples and high-level abstractions. However, the breadth of the framework means mastering advanced features and debugging complex chains can take time.",
+                    llamaIndexUseCases: "Very straightforward for core RAG tasks (load data, index, query) with clear, data-centric abstractions. The focus on the data pipeline often makes initial understanding and implementation of RAG simpler.",
+                    pmInsight: "LlamaIndex often offers a gentler learning curve specifically for RAG-centric applications due to its focused design. LangChain's extensive capabilities mean a steeper curve to master everything, but building simple applications is also well-supported. Consider the primary use case when evaluating this."
+                },
+                scalabilityProduction: {
+                    title: 'Scalability/Production Readiness',
+                    description: "Features, patterns, community support, and tooling related to deploying applications to production, handling larger data volumes and user loads, observability, and maintenance.",
+                    langChainUseCases: "LangSmith for tracing, monitoring, and debugging chains/agents is a significant production asset. Growing ecosystem of deployment patterns and integrations. Modularity allows for scalable components.",
+                    llamaIndexUseCases: "Focus on efficient data handling and indexing can contribute to scalable retrieval. Integrates with production-grade vector stores. Observability and production concerns are often addressed via integrations or by building on top of its core data framework.",
+                    pmInsight: "Both frameworks are being used in production. LangChain's LangSmith provides a strong, dedicated solution for observability and debugging. LlamaIndex's focus on optimized data pipelines is crucial for scalable RAG. Scalability also heavily depends on the underlying LLMs, vector databases, and infrastructure used in conjunction with either framework."
+                }
+            };
+
+            const ctx = document.getElementById('capabilityRadarChart').getContext('2d');
+            let radarChart;
+
+            function createChart() {
+                if (radarChart) {
+                    radarChart.destroy();
+                }
+
+                const datasets = [];
+                if (!frameworkData.langChain.hidden) {
+                    datasets.push({
+                        label: frameworkData.langChain.label,
+                        data: frameworkData.langChain.scores,
+                        borderColor: frameworkData.langChain.borderColor,
+                        backgroundColor: frameworkData.langChain.backgroundColor,
+                        pointBackgroundColor: frameworkData.langChain.borderColor,
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: frameworkData.langChain.borderColor
+                    });
+                }
+                if (!frameworkData.llamaIndex.hidden) {
+                    datasets.push({
+                        label: frameworkData.llamaIndex.label,
+                        data: frameworkData.llamaIndex.scores,
+                        borderColor: frameworkData.llamaIndex.borderColor,
+                        backgroundColor: frameworkData.llamaIndex.backgroundColor,
+                        pointBackgroundColor: frameworkData.llamaIndex.borderColor,
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: frameworkData.llamaIndex.borderColor
+                    });
+                }
+
+                radarChart = new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: capabilities.map(c => c.name),
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        elements: {
+                            line: {
+                                borderWidth: 2
+                            }
+                        },
+                        scales: {
+                            r: {
+                                angleLines: { display: true, color: 'rgba(0, 0, 0, 0.1)' },
+                                suggestedMin: 0,
+                                suggestedMax: 10,
+                                pointLabels: {
+                                    font: { size: 10 }, // Smaller font for point labels
+                                    // Callback to make point labels clickable
+                                    // This is a bit tricky as Chart.js pointLabels don't have direct click events
+                                    // For better UX, separate buttons are preferred as implemented
+                                },
+                                ticks: {
+                                    stepSize: 2,
+                                    backdropColor: 'transparent',
+                                    font: {size: 9}
+                                },
+                                grid: { color: 'rgba(0, 0, 0, 0.1)' }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: { font: { size: 12 } }
+                            },
+                            tooltip: {
+                                enabled: true,
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.r !== null) {
+                                            label += context.parsed.r;
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        onClick: (event, elements) => {
+                            // This handles clicks on chart data points.
+                            // More complex logic would be needed to map these clicks precisely to labels.
+                            // For simplicity, we rely on external buttons for selecting details.
+                            if (elements.length > 0) {
+                                // const datasetIndex = elements[0].datasetIndex;
+                                const index = elements[0].index; // This is the index of the capability/label
+                                const capabilityId = capabilities[index].id;
+                                displayCapabilityDetails(capabilityId);
+                                highlightCapabilityButton(capabilityId);
+                            }
+                        }
+                    }
+                });
+            }
+
+            const detailsPanel = document.getElementById('detailsPanel');
+            const detailsTitle = document.getElementById('detailsTitle');
+            const detailsContent = document.getElementById('detailsContent');
+
+            function displayCapabilityDetails(capabilityId) {
+                const detail = capabilityDetails[capabilityId];
+                if (detail) {
+                    detailsTitle.textContent = detail.title;
+                    detailsContent.innerHTML = `
+                        <p>${detail.description}</p>
+                        <h4>LangChain: Relevant Use Cases & Strengths</h4>
+                        <p>${detail.langChainUseCases}</p>
+                        <h4>LlamaIndex: Relevant Use Cases & Strengths</h4>
+                        <p>${detail.llamaIndexUseCases}</p>
+                        <h4><strong>Product Manager Insight:</strong></h4>
+                        <p>${detail.pmInsight}</p>
+                    `;
+                    detailsPanel.style.display = 'block';
+                    detailsPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
+            
+            const capabilityButtonsContainer = document.getElementById('capabilityButtonsContainer');
+            capabilities.forEach(cap => {
+                const button = document.createElement('button');
+                button.className = 'capability-button';
+                button.textContent = cap.name;
+                button.dataset.capabilityId = cap.id;
+                button.addEventListener('click', () => {
+                    displayCapabilityDetails(cap.id);
+                    highlightCapabilityButton(cap.id);
+                });
+                capabilityButtonsContainer.appendChild(button);
+            });
+
+            function highlightCapabilityButton(selectedId) {
+                const buttons = capabilityButtonsContainer.querySelectorAll('.capability-button');
+                buttons.forEach(btn => {
+                    if (btn.dataset.capabilityId === selectedId) {
+                        btn.classList.add('selected');
+                    } else {
+                        btn.classList.remove('selected');
+                    }
+                });
+            }
+
+            document.getElementById('toggleLangChainBtn').addEventListener('click', function() {
+                frameworkData.langChain.hidden = !frameworkData.langChain.hidden;
+                this.classList.toggle('active', !frameworkData.langChain.hidden);
+                this.textContent = frameworkData.langChain.hidden ? 'Show LangChain' : 'Hide LangChain';
+                createChart();
+            });
+
+            document.getElementById('toggleLlamaIndexBtn').addEventListener('click', function() {
+                frameworkData.llamaIndex.hidden = !frameworkData.llamaIndex.hidden;
+                this.classList.toggle('active', !frameworkData.llamaIndex.hidden);
+                this.textContent = frameworkData.llamaIndex.hidden ? 'Show LlamaIndex' : 'Hide LlamaIndex';
+                createChart();
+            });
+            
+            // Initial chart creation
+            createChart();
+        });
+    </script>
+</body>
+</html>
