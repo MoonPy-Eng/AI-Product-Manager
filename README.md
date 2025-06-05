@@ -42,7 +42,7 @@ Live Demo URL: https://ai-product-manager-7896c.web.app
 
 Run locally:
 
-Download the [your-html-file-name].html file (the one containing the interactive comparison code).
+Download the LlamaIndex vs LangChain.html file (the one containing the interactive comparison code).
 
 Open this HTML file directly in any modern web browser (like Chrome, Firefox, Safari, Edge).
 
